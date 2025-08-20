@@ -55,113 +55,321 @@ export interface FieldOption extends Object {
   /** 与uuidShort只能有一个 */
   uuid?: boolean;
 }
+
+
 /**
- * 用于在对象中设置指定路径的值，支持方法调用如 Missing(1)
- * @param obj 对象
- * @param path 路径，支持多种写法，如 'name.bb[0].age', 'name.bb.0.age', 'Words.Missing(1).Text'
+ * 纯TypeScript实现的get方法，支持函数调用和复杂路径操作
+ * @param obj 目标对象
+ * @param path 路径字符串，支持属性访问、数组索引、函数调用
+ * @param defaultValue 默认值
+ * @returns 获取到的值或默认值
+ */
+export function LGet<R = any, T = any>(obj: T, path: string, defaultValue?: R): R {
+  if (!obj || typeof path !== 'string') {
+    return defaultValue as R;
+  }
+
+  try {
+    return evaluatePath(obj, path, defaultValue);
+  } catch (error) {
+    return defaultValue as R;
+  }
+}
+
+/**
+ * 纯TypeScript实现的set方法，支持设置属性、数组元素和函数返回值的属性
+ * @param obj 目标对象
+ * @param path 路径字符串
  * @param value 要设置的值
  * @returns 修改后的对象
  */
-export const LSet = function <T = any, V = any>(obj: T, path: string, value: V): T {
-  // Handle null/undefined object
-  if (obj == null) {
-    obj = {} as T;
-  }
-
-  // Convert path to array, supporting dot and bracket notation, and method calls like Missing(1)
-  const keys = path
-    .replace(/\[(\d+)\]/g, '.$1') // Convert [0] to .0
-    .split(/\.|\(/g) // Split on dots or opening parentheses
-    .filter(key => key !== '') // Remove empty strings
-    .map(key => key.replace(/\)/g, '')); // Remove closing parentheses
-
-  // If path has only one key, set it directly
-  if (keys.length === 1) {
-    (obj as any)[keys[0]!] = value;
+export function LSet<R = any, T = any>(obj: T, path: string, value: R): T {
+  if (!obj || typeof path !== 'string') {
     return obj;
   }
 
-  // Use LGet to traverse up to the second-to-last key
-  const parentPath = path.substring(0, path.lastIndexOf('.')); // Get path up to last dot
-  const finalKey = keys[keys.length - 1]!;
-  let parent = LGet(obj, parentPath);
+  try {
+    setValueAtPath(obj, path, value);
+    return obj;
+  } catch (error) {
+    console.error('LSet error:', error);
+    return obj;
+  }
+}
 
-  // If parent is null/undefined, create intermediate structure
-  if (parent == null) {
-    let current: any = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i]!;
-      const nextKey = keys[i + 1];
+/**
+ * 解析并执行路径表达式
+ */
+function evaluatePath(obj: any, path: string, defaultValue?: any): any {
+  const tokens = tokenizePath(path);
+  let current = obj;
 
-      // Check if the next key is a number and the current key is a method
-      if (i + 1 < keys.length && !isNaN(Number(nextKey)) && typeof current[key] === 'function') {
-        const arg = Number(nextKey);
-        if (current[key](arg) == null) {
-          // If method call returns null/undefined, initialize as object or array
-          current[key] = !isNaN(Number(keys[i + 2])) ? [] : {};
-          current = current[key](arg);
-        } else {
-          current = current[key](arg);
-        }
-        i++; // Skip the argument
+  for (const token of tokens) {
+    if (current == null) {
+      return defaultValue;
+    }
+
+    if (token.type === 'property') {
+      current = current[token.value!];
+    } else if (token.type === 'index') {
+      current = current[token.value!];
+    } else if (token.type === 'function') {
+      if (typeof current[token.name!] === 'function') {
+        current = current[token.name!].apply(current, token.args);
       } else {
-        // If next key is a number, ensure current[key] is an array
-        if (!isNaN(Number(nextKey))) {
-          current[key] = Array.isArray(current[key]) ? current[key] : [];
-        } else {
-          // Otherwise, ensure current[key] is an object
-          current[key] = current[key] != null ? current[key] : {};
-        }
-        current = current[key];
+        return defaultValue;
       }
     }
-    parent = current;
   }
 
-  // Set the value at the final key
-  parent[finalKey] = value;
+  return current !== undefined ? current : defaultValue;
+}
 
-  return obj;
-};
 /**
- * 用于获取对象中指定路径的值，支持方法调用如 Item(1)
- * @param obj 对象
- * @param path 路径，支持多种写法，如 'name.bb[0].age', 'name.bb.0.age', 'Words.Item(1).Text'
- * @param defaultValue 路径错误时的默认值
- * @returns 
+ * 在指定路径设置值
  */
-export const LGet = function <R = any, T = any>(obj: T, path: string, defaultValue?: R) {
-  // Handle null/undefined object
-  if (obj == null) return defaultValue;
+function setValueAtPath(obj: any, path: string, value: any): void {
+  const tokens = tokenizePath(path);
+  let current = obj;
 
-  // Convert path to array, supporting dot and bracket notation, but keep method calls like Item(1) intact
-  const keys = Array.isArray(path)
-    ? path
-    : path
-      .replace(/\[(\d+)\]/g, '.$1') // Convert [0] to .0
-      .split(/\.|\(/g) // Split on dots or opening parentheses
-      .filter(key => key !== '') // Remove empty strings
-      .map(key => key.replace(/\)/g, '')); // Remove closing parentheses
+  // 处理到倒数第二个token
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const token = tokens[i]!;
 
-  // Traverse object
-  let current: any = obj;
-  for (let i = 0; i < keys.length; i++) {
-    if (current == null) return defaultValue;
-
-    const key = keys[i];
-    // Check if the key represents a method call with a number, e.g., Item(1) was split into 'Item', '1'
-    if (i + 1 < keys.length && !isNaN(Number(keys[i + 1])) && typeof current[key] === 'function') {
-      const arg = Number(keys[i + 1]);
-      current = current[key](arg);
-      i++; // Skip the argument since it was used in the method call
-    } else {
-      current = current[key];
+    if (token.type === 'property') {
+      if (current[token.value!] == null) {
+        // 检查下一个token来决定创建对象还是数组
+        const nextToken = tokens[i + 1]!;
+        current[token.value!] = (nextToken.type === 'index') ? [] : {};
+      }
+      current = current[token.value!];
+    } else if (token.type === 'index') {
+      if (!Array.isArray(current)) {
+        throw new Error(`Cannot access array index on non-array`);
+      }
+      if (current[token.value!] == null) {
+        const nextToken = tokens[i + 1]!;
+        current[token.value!] = (nextToken.type === 'index') ? [] : {};
+      }
+      current = current[token.value!];
+    } else if (token.type === 'function') {
+      if (typeof current[token.name!] === 'function') {
+        current = current[token.name!].apply(current, token.args);
+      } else {
+        throw new Error(`Function ${token.name!} not found`);
+      }
     }
   }
 
-  // Return result or defaultValue if undefined
-  return current !== undefined ? current : defaultValue;
+  // 处理最后一个token
+  const lastToken = tokens[tokens.length - 1]!;
+  if (lastToken.type === 'property') {
+    current[lastToken.value!] = value;
+  } else if (lastToken.type === 'index') {
+    if (!Array.isArray(current)) {
+      throw new Error(`Cannot set array index on non-array`);
+    }
+    current[lastToken.value!] = value;
+  } else if (lastToken.type === 'function') {
+    throw new Error(`Cannot set value to function call result directly`);
+  }
 }
+
+/**
+ * 将路径字符串分解为token数组
+ */
+function tokenizePath(path: string): Array<{
+  type: 'property' | 'index' | 'function';
+  value?: any;
+  name?: string;
+  args?: any[];
+}> {
+  const tokens: Array<{
+    type: 'property' | 'index' | 'function';
+    value?: any;
+    name?: string;
+    args?: any[];
+  }> = [];
+
+  let i = 0;
+  let current = '';
+
+  while (i < path.length) {
+    const char = path[i];
+
+    if (char === '.') {
+      if (current) {
+        tokens.push({ type: 'property', value: current });
+        current = '';
+      }
+    } else if (char === '[') {
+      if (current) {
+        tokens.push({ type: 'property', value: current });
+        current = '';
+      }
+
+      // 查找匹配的右括号
+      let j = i + 1;
+      let bracketCount = 1;
+      let indexContent = '';
+
+      while (j < path.length && bracketCount > 0) {
+        if (path[j] === '[') bracketCount++;
+        if (path[j] === ']') bracketCount--;
+        if (bracketCount > 0) {
+          indexContent += path[j];
+        }
+        j++;
+      }
+
+      // 解析数组索引（可能是数字或字符串）
+      const indexValue = isNaN(Number(indexContent)) ? indexContent : Number(indexContent);
+      tokens.push({ type: 'index', value: indexValue });
+      i = j - 1;
+    } else if (char === '(') {
+      // 函数调用
+      const functionName = current;
+      current = '';
+
+      // 查找匹配的右括号并解析参数
+      let j = i + 1;
+      let parenCount = 1;
+      let argsContent = '';
+
+      while (j < path.length && parenCount > 0) {
+        if (path[j] === '(') parenCount++;
+        if (path[j] === ')') parenCount--;
+        if (parenCount > 0) {
+          argsContent += path[j];
+        }
+        j++;
+      }
+
+      // 解析函数参数
+      const args = parseArguments(argsContent);
+      tokens.push({ type: 'function', name: functionName, args });
+      i = j - 1;
+    } else {
+      current += char;
+    }
+
+    i++;
+  }
+
+  if (current) {
+    tokens.push({ type: 'property', value: current });
+  }
+
+  return tokens;
+}
+
+/**
+ * 解析函数参数字符串
+ */
+function parseArguments(argsStr: string): any[] {
+  if (!argsStr.trim()) {
+    return [];
+  }
+
+  const args: any[] = [];
+  let current = '';
+  let inString = false;
+  let stringChar = '';
+  let parenCount = 0;
+  let bracketCount = 0;
+
+  for (let i = 0; i < argsStr.length; i++) {
+    const char = argsStr[i];
+
+    if (!inString) {
+      if (char === '"' || char === "'") {
+        inString = true;
+        stringChar = char;
+        current += char;
+      } else if (char === '(') {
+        parenCount++;
+        current += char;
+      } else if (char === ')') {
+        parenCount--;
+        current += char;
+      } else if (char === '[') {
+        bracketCount++;
+        current += char;
+      } else if (char === ']') {
+        bracketCount--;
+        current += char;
+      } else if (char === ',' && parenCount === 0 && bracketCount === 0) {
+        args.push(parseValue(current.trim()));
+        current = '';
+      } else {
+        current += char;
+      }
+    } else {
+      current += char;
+      if (char === stringChar && argsStr[i - 1] !== '\\') {
+        inString = false;
+        stringChar = '';
+      }
+    }
+  }
+
+  if (current.trim()) {
+    args.push(parseValue(current.trim()));
+  }
+
+  return args;
+}
+
+/**
+ * 解析单个值（字符串、数字、数组等）
+ */
+function parseValue(valueStr: string): any {
+  const trimmed = valueStr.trim();
+
+  // 空字符串
+  if (!trimmed) {
+    return '';
+  }
+
+  // 字符串字面量
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1);
+  }
+
+  // 数组字面量
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  // 对象字面量
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  // 数字
+  if (!isNaN(Number(trimmed))) {
+    return Number(trimmed);
+  }
+
+  // 布尔值
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+  if (trimmed === 'undefined') return undefined;
+
+  // 默认返回字符串
+  return trimmed;
+}
+
 
 export const _columns = Symbol('columns');
 export const _ids = Symbol('ids');
