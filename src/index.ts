@@ -1,5 +1,3 @@
-import iterate from 'iterare';
-import LGet from 'lodash.get';
 import 'reflect-metadata';
 
 export enum SqlType {
@@ -57,6 +55,114 @@ export interface FieldOption extends Object {
   /** 与uuidShort只能有一个 */
   uuid?: boolean;
 }
+/**
+ * 用于在对象中设置指定路径的值，支持方法调用如 Missing(1)
+ * @param obj 对象
+ * @param path 路径，支持多种写法，如 'name.bb[0].age', 'name.bb.0.age', 'Words.Missing(1).Text'
+ * @param value 要设置的值
+ * @returns 修改后的对象
+ */
+export const LSet = function <T = any, V = any>(obj: T, path: string, value: V): T {
+  // Handle null/undefined object
+  if (obj == null) {
+    obj = {} as T;
+  }
+
+  // Convert path to array, supporting dot and bracket notation, and method calls like Missing(1)
+  const keys = path
+    .replace(/\[(\d+)\]/g, '.$1') // Convert [0] to .0
+    .split(/\.|\(/g) // Split on dots or opening parentheses
+    .filter(key => key !== '') // Remove empty strings
+    .map(key => key.replace(/\)/g, '')); // Remove closing parentheses
+
+  // If path has only one key, set it directly
+  if (keys.length === 1) {
+    (obj as any)[keys[0]!] = value;
+    return obj;
+  }
+
+  // Use LGet to traverse up to the second-to-last key
+  const parentPath = path.substring(0, path.lastIndexOf('.')); // Get path up to last dot
+  const finalKey = keys[keys.length - 1]!;
+  let parent = LGet(obj, parentPath);
+
+  // If parent is null/undefined, create intermediate structure
+  if (parent == null) {
+    let current: any = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i]!;
+      const nextKey = keys[i + 1];
+
+      // Check if the next key is a number and the current key is a method
+      if (i + 1 < keys.length && !isNaN(Number(nextKey)) && typeof current[key] === 'function') {
+        const arg = Number(nextKey);
+        if (current[key](arg) == null) {
+          // If method call returns null/undefined, initialize as object or array
+          current[key] = !isNaN(Number(keys[i + 2])) ? [] : {};
+          current = current[key](arg);
+        } else {
+          current = current[key](arg);
+        }
+        i++; // Skip the argument
+      } else {
+        // If next key is a number, ensure current[key] is an array
+        if (!isNaN(Number(nextKey))) {
+          current[key] = Array.isArray(current[key]) ? current[key] : [];
+        } else {
+          // Otherwise, ensure current[key] is an object
+          current[key] = current[key] != null ? current[key] : {};
+        }
+        current = current[key];
+      }
+    }
+    parent = current;
+  }
+
+  // Set the value at the final key
+  parent[finalKey] = value;
+
+  return obj;
+};
+/**
+ * 用于获取对象中指定路径的值，支持方法调用如 Item(1)
+ * @param obj 对象
+ * @param path 路径，支持多种写法，如 'name.bb[0].age', 'name.bb.0.age', 'Words.Item(1).Text'
+ * @param defaultValue 路径错误时的默认值
+ * @returns 
+ */
+export const LGet = function <R = any, T = any>(obj: T, path: string, defaultValue?: R) {
+  // Handle null/undefined object
+  if (obj == null) return defaultValue;
+
+  // Convert path to array, supporting dot and bracket notation, but keep method calls like Item(1) intact
+  const keys = Array.isArray(path)
+    ? path
+    : path
+      .replace(/\[(\d+)\]/g, '.$1') // Convert [0] to .0
+      .split(/\.|\(/g) // Split on dots or opening parentheses
+      .filter(key => key !== '') // Remove empty strings
+      .map(key => key.replace(/\)/g, '')); // Remove closing parentheses
+
+  // Traverse object
+  let current: any = obj;
+  for (let i = 0; i < keys.length; i++) {
+    if (current == null) return defaultValue;
+
+    const key = keys[i];
+    // Check if the key represents a method call with a number, e.g., Item(1) was split into 'Item', '1'
+    if (i + 1 < keys.length && !isNaN(Number(keys[i + 1])) && typeof current[key] === 'function') {
+      const arg = Number(keys[i + 1]);
+      current = current[key](arg);
+      i++; // Skip the argument since it was used in the method call
+    } else {
+      current = current[key];
+    }
+  }
+
+  // Return result or defaultValue if undefined
+  return current !== undefined ? current : defaultValue;
+}
+
 export const _columns = Symbol('columns');
 export const _ids = Symbol('ids');
 export const _logicIds = Symbol('logicIds');
@@ -605,17 +711,6 @@ export class SetEx<T> extends Set {
     return this._map.get(key as string) ?? null;
   }
   /**
-   * 用key找到匹配的所有对象
-   * @param {*} key 这是对象的关键属性,而非对象
-   * @returns {T[]}
-   */
-  findAll(key: T[keyof T]): T[] {
-    return iterate(key as string[])
-      .map((k) => this._map.get(k))
-      .filter((v) => v !== undefined)
-      .toArray() as T[];
-  }
-  /**
    *
    * 用函数回调找到匹配的第一个对象
    * @param {(item: T) => boolean} fn
@@ -957,7 +1052,7 @@ type Patter = {
   password: patter;
 };
 export const Patterns: Patter = {
-  'password': ['必须同时包含大写字母、小写字母、数字、特殊字符,至少8位', /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/],
+  'password': ['必须同时包含大写字母、小写字母、数字、特殊字符,至少8位', /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\w\s]).{8,}$/],
   'upper-letter': ['只能输入大写字母', /^[A-Z]+$/],
   'lower-letter': ['只能输入小写字母', /^[a-z]+$/],
   letter: ['只能输入字母', /^[a-zA-Z]+$/],
