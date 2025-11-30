@@ -55,7 +55,13 @@ export interface FieldOption extends Object {
   /** 与uuidShort只能有一个 */
   uuid?: boolean;
 }
-
+/**
+ * 路径解析的token类型
+ */
+type PathToken =
+  | { type: 'property'; value: string }
+  | { type: 'index'; value: number | string }
+  | { type: 'function'; name: string; args: any[] };
 
 /**
  * 纯TypeScript实现的get方法，支持函数调用和复杂路径操作
@@ -64,15 +70,14 @@ export interface FieldOption extends Object {
  * @param defaultValue 默认值
  * @returns 获取到的值或默认值
  */
-export function LGet<R = any, T = any>(obj: T, path: string, defaultValue?: R): R {
+export function LGet<T = any>(obj: any, path: string, defaultValue?: T): T {
   if (!obj || typeof path !== 'string') {
-    return defaultValue as R;
+    return defaultValue as T;
   }
-
   try {
-    return evaluatePath(obj, path, defaultValue);
+    return evaluatePath(obj, path, defaultValue) as T;
   } catch (error) {
-    return defaultValue as R;
+    return defaultValue as T;
   }
 }
 
@@ -83,16 +88,14 @@ export function LGet<R = any, T = any>(obj: T, path: string, defaultValue?: R): 
  * @param value 要设置的值
  * @returns 修改后的对象
  */
-export function LSet<R = any, T = any>(obj: T, path: string, value: R): T {
+export function LSet<T = any>(obj: T, path: string, value: any): T {
   if (!obj || typeof path !== 'string') {
     return obj;
   }
-
   try {
     setValueAtPath(obj, path, value);
     return obj;
   } catch (error) {
-    console.error('LSet error:', error);
     return obj;
   }
 }
@@ -102,23 +105,27 @@ export function LSet<R = any, T = any>(obj: T, path: string, value: R): T {
  */
 function evaluatePath(obj: any, path: string, defaultValue?: any): any {
   const tokens = tokenizePath(path);
-  let current = obj;
+  let current: any = obj;
 
   for (const token of tokens) {
     if (current == null) {
       return defaultValue;
     }
 
-    if (token.type === 'property') {
-      current = current[token.value!];
-    } else if (token.type === 'index') {
-      current = current[token.value!];
-    } else if (token.type === 'function') {
-      if (typeof current[token.name!] === 'function') {
-        current = current[token.name!].apply(current, token.args);
-      } else {
-        return defaultValue;
-      }
+    switch (token.type) {
+      case 'property':
+        current = current[token.value];
+        break;
+      case 'index':
+        current = current[token.value];
+        break;
+      case 'function':
+        if (typeof current[token.name] === 'function') {
+          current = current[token.name].apply(current, token.args);
+        } else {
+          return defaultValue;
+        }
+        break;
     }
   }
 
@@ -130,67 +137,64 @@ function evaluatePath(obj: any, path: string, defaultValue?: any): any {
  */
 function setValueAtPath(obj: any, path: string, value: any): void {
   const tokens = tokenizePath(path);
-  let current = obj;
+  let current: any = obj;
 
   // 处理到倒数第二个token
   for (let i = 0; i < tokens.length - 1; i++) {
-    const token = tokens[i]!;
+    const token = tokens[i];
 
-    if (token.type === 'property') {
-      if (current[token.value!] == null) {
-        // 检查下一个token来决定创建对象还是数组
-        const nextToken = tokens[i + 1]!;
-        current[token.value!] = (nextToken.type === 'index') ? [] : {};
-      }
-      current = current[token.value!];
-    } else if (token.type === 'index') {
-      if (!Array.isArray(current)) {
-        throw new Error(`Cannot access array index on non-array`);
-      }
-      if (current[token.value!] == null) {
-        const nextToken = tokens[i + 1]!;
-        current[token.value!] = (nextToken.type === 'index') ? [] : {};
-      }
-      current = current[token.value!];
-    } else if (token.type === 'function') {
-      if (typeof current[token.name!] === 'function') {
-        current = current[token.name!].apply(current, token.args);
-      } else {
-        throw new Error(`Function ${token.name!} not found`);
-      }
+    switch (token?.type) {
+      case 'property':
+        if (current[token.value] == null) {
+          // 检查下一个token来决定创建对象还是数组
+          const nextToken = tokens[i + 1];
+          current[token.value] = (nextToken?.type === 'index') ? [] : {};
+        }
+        current = current[token.value];
+        break;
+      case 'index':
+        if (!Array.isArray(current)) {
+          throw new Error(`Cannot access array index on non-array`);
+        }
+        if (current[token.value] == null) {
+          const nextToken = tokens[i + 1];
+          current[token.value] = (nextToken?.type === 'index') ? [] : {};
+        }
+        current = current[token.value];
+        break;
+      case 'function':
+        if (typeof current[token.name] === 'function') {
+          current = current[token.name].apply(current, token.args);
+        } else {
+          throw new Error(`Function ${token.name} not found`);
+        }
+        break;
     }
   }
 
   // 处理最后一个token
-  const lastToken = tokens[tokens.length - 1]!;
-  if (lastToken.type === 'property') {
-    current[lastToken.value!] = value;
-  } else if (lastToken.type === 'index') {
-    if (!Array.isArray(current)) {
-      throw new Error(`Cannot set array index on non-array`);
-    }
-    current[lastToken.value!] = value;
-  } else if (lastToken.type === 'function') {
-    throw new Error(`Cannot set value to function call result directly`);
+  const lastToken = tokens[tokens.length - 1];
+
+  switch (lastToken?.type) {
+    case 'property':
+      current[lastToken.value] = value;
+      break;
+    case 'index':
+      if (!Array.isArray(current)) {
+        throw new Error(`Cannot set array index on non-array`);
+      }
+      current[lastToken.value] = value;
+      break;
+    case 'function':
+      throw new Error(`Cannot set value to function call result directly`);
   }
 }
 
 /**
  * 将路径字符串分解为token数组
  */
-function tokenizePath(path: string): Array<{
-  type: 'property' | 'index' | 'function';
-  value?: any;
-  name?: string;
-  args?: any[];
-}> {
-  const tokens: Array<{
-    type: 'property' | 'index' | 'function';
-    value?: any;
-    name?: string;
-    args?: any[];
-  }> = [];
-
+function tokenizePath(path: string): PathToken[] {
+  const tokens: PathToken[] = [];
   let i = 0;
   let current = '';
 
@@ -360,7 +364,7 @@ function parseValue(valueStr: string): any {
     return Number(trimmed);
   }
 
-  // 布尔值
+  // 布尔值和特殊值
   if (trimmed === 'true') return true;
   if (trimmed === 'false') return false;
   if (trimmed === 'null') return null;
