@@ -1,11 +1,11 @@
 {
   "name": "baja-lite-field",
-  "version": "1.4.20",
+  "version": "1.4.23",
   "description": "some util for self",
-  "homepage": "https://github.com/void-soul/util-man",
+  "homepage": "https://github.com/void-soul/baja-lite-field",
   "repository": {
     "type": "git",
-    "url": "https://github.com/void-soul/util-man.git"
+    "url": "https://github.com/void-soul/baja-lite-field.git"
   },
   "license": "MIT",
   "author": "void-soul",
@@ -25,7 +25,7 @@
     "reflect-metadata": "0.2.2"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@types/node": "25.0.10",
     "shelljs": "0.10.0",
     "typescript": "5.9.3",
     "tslib": "2.8.1"

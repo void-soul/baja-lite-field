@@ -515,7 +515,17 @@ export const Field = (config: FieldOption) => {
           `${field.C2()} real`;
         break;
       }
-
+      case SqlType.json: {
+        field[DBType.Mysql] = () =>
+          `${field.C2()} json ${config.notNull === true ? 'NOT NULL' : ''
+          } ${MYSQLCHARSET} ${hasDef ? `DEFAULT '${field.def}'` : ''}`;
+        field[DBType.Postgresql] = () =>
+          `${field.C2()} text ${config.notNull === true ? 'NOT NULL' : ''
+          } ${POSTGRESCHARSET} ${hasDef ? `DEFAULT '${field.def}'` : ''}`;
+        field[DBType.SqliteRemote] = field[DBType.Sqlite] = () =>
+          `${field.C2()} text`;
+        break;
+      }
       case SqlType.longtext: {
         field[DBType.Mysql] = () =>
           `${field.C2()} longtext ${config.notNull === true ? 'NOT NULL' : ''
