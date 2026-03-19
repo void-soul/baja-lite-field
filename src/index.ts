@@ -1575,7 +1575,7 @@ export class ValidItem<FormType> {
   }
   async mkEnum() {
     const target = typeof this.props.mkEnum === 'function' ? this.props.mkEnum(this.data) : this.props.mkEnum;
-    if (target && target.includes(this.value) === false) {
+    if (target && this.emptyValue === false && target.includes(this.value) === false) {
       throw new Error(this.props.ms?.mkEnum || ms.mkEnum(target, this.realLabel));
     }
   }
@@ -1596,43 +1596,43 @@ export class ValidItem<FormType> {
   }
   async mkEq() {
     const target = (typeof this.props.mkEq === 'function' ? this.props.mkEq(this.data) : this.props.mkEq);
-    if (target && this.value !== target) {
+    if (target && this.emptyValue === false && this.value !== target) {
       throw new Error(this.props.ms?.mkEq || ms.mkEq(target, this.realLabel));
     }
   }
   async mkNe() {
     const target = (typeof this.props.mkNe === 'function' ? this.props.mkNe(this.data) : this.props.mkNe);
-    if (target && this.value === target) {
+    if (target && this.emptyValue === false && this.value === target) {
       throw new Error(this.props.ms?.mkNe || ms.mkNe(target, this.realLabel));
     }
   }
   async mkLt() {
     const target = (typeof this.props.mkLt === 'function' ? this.props.mkLt(this.data) : this.props.mkLt);
-    if (target && this.value >= target) {
+    if (target && this.emptyValue === false && this.value >= target) {
       throw new Error(this.props.ms?.mkLt || ms.mkLt(target, this.realLabel));
     }
   }
   async mkLe() {
     const target = (typeof this.props.mkLe === 'function' ? this.props.mkLe(this.data) : this.props.mkLe);
-    if (target && this.value > target) {
+    if (target && this.emptyValue === false && this.value > target) {
       throw new Error(this.props.ms?.mkLe || ms.mkLe(target, this.realLabel));
     }
   }
   async mkGt() {
     const target = (typeof this.props.mkGt === 'function' ? this.props.mkGt(this.data) : this.props.mkGt);
-    if (target && this.value <= target) {
+    if (target && this.emptyValue === false && this.value <= target) {
       throw new Error(this.props.ms?.mkGt || ms.mkGt(target, this.realLabel));
     }
   }
   async mkGe() {
     const target = (typeof this.props.mkGe === 'function' ? this.props.mkGe(this.data) : this.props.mkGe);
-    if (target && this.value < target) {
+    if (target && this.emptyValue === false && this.value < target) {
       throw new Error(this.props.ms?.mkGe || ms.mkGe(target, this.realLabel));
     }
   }
   async mkEqProp() {
     const path = (typeof this.props.mkEqProp === 'function' ? this.props.mkEqProp(this.data) : this.props.mkEqProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value !== target) {
         throw new Error(this.props.ms?.mkEq || ms.mkEq(target, this.realLabel));
@@ -1641,7 +1641,7 @@ export class ValidItem<FormType> {
   }
   async mkNeProp() {
     const path = (typeof this.props.mkNeProp === 'function' ? this.props.mkNeProp(this.data) : this.props.mkNeProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value === target) {
         throw new Error(this.props.ms?.mkNe || ms.mkNe(target, this.realLabel));
@@ -1650,7 +1650,7 @@ export class ValidItem<FormType> {
   }
   async mkLtProp() {
     const path = (typeof this.props.mkLtProp === 'function' ? this.props.mkLtProp(this.data) : this.props.mkLtProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value >= target) {
         throw new Error(this.props.ms?.mkLt || ms.mkLt(target, this.realLabel));
@@ -1659,7 +1659,7 @@ export class ValidItem<FormType> {
   }
   async mkLeProp() {
     const path = (typeof this.props.mkLeProp === 'function' ? this.props.mkLeProp(this.data) : this.props.mkLeProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value > target) {
         throw new Error(this.props.ms?.mkLe || ms.mkLe(target, this.realLabel));
@@ -1668,7 +1668,7 @@ export class ValidItem<FormType> {
   }
   async mkGtProp() {
     const path = (typeof this.props.mkGtProp === 'function' ? this.props.mkGtProp(this.data) : this.props.mkGtProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value <= target) {
         throw new Error(this.props.ms?.mkGt || ms.mkGt(target, this.realLabel));
@@ -1677,7 +1677,7 @@ export class ValidItem<FormType> {
   }
   async mkGeProp() {
     const path = (typeof this.props.mkGeProp === 'function' ? this.props.mkGeProp(this.data) : this.props.mkGeProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const target = LGet(this.data, path);
       if (this.value < target) {
         throw new Error(this.props.ms?.mkGe || ms.mkGe(target, this.realLabel));
@@ -1686,79 +1686,79 @@ export class ValidItem<FormType> {
   }
   async mkEqLength() {
     const target = (typeof this.props.mkEqLength === 'function' ? this.props.mkEqLength(this.data) : this.props.mkEqLength);
-    if (target !== undefined && this.length !== target) {
+    if (target !== undefined && this.emptyValue === false && this.length !== target) {
       throw new Error(this.props.ms?.mkEqLength || ms.mkEqLength(target, this.realLabel));
     }
   }
   async mkNeLength() {
     const target = (typeof this.props.mkNeLength === 'function' ? this.props.mkNeLength(this.data) : this.props.mkNeLength);
-    if (target !== undefined && this.length === target) {
+    if (target !== undefined && this.emptyValue === false && this.length === target) {
       throw new Error(this.props.ms?.mkNeLength || ms.mkNeLength(target, this.realLabel));
     }
   }
   async mkLtLength() {
     const target = (typeof this.props.mkLtLength === 'function' ? this.props.mkLtLength(this.data) : this.props.mkLtLength);
-    if (target !== undefined && this.length >= target) {
+    if (target !== undefined && this.emptyValue === false && this.length >= target) {
       throw new Error(this.props.ms?.mkLtLength || ms.mkLtLength(target, this.realLabel));
     }
   }
   async mkLeLength() {
     const target = (typeof this.props.mkLeLength === 'function' ? this.props.mkLeLength(this.data) : this.props.mkLeLength);
-    if (target !== undefined && this.length > target) {
+    if (target !== undefined && this.emptyValue === false && this.length > target) {
       throw new Error(this.props.ms?.mkLeLength || ms.mkLeLength(target, this.realLabel));
     }
   }
   async mkGtLength() {
     const target = (typeof this.props.mkGtLength === 'function' ? this.props.mkGtLength(this.data) : this.props.mkGtLength);
-    if (target !== undefined && this.length <= target) {
+    if (target !== undefined && this.emptyValue === false && this.length <= target) {
       throw new Error(this.props.ms?.mkGtLength || ms.mkGtLength(target, this.realLabel));
     }
   }
   async mkGeLength() {
     const target = (typeof this.props.mkGeLength === 'function' ? this.props.mkGeLength(this.data) : this.props.mkGeLength);
-    if (target !== undefined && this.length < target) {
+    if (target !== undefined && this.emptyValue === false && this.length < target) {
       throw new Error(this.props.ms?.mkGeLength || ms.mkGeLength(target, this.realLabel));
     }
   }
   async mkEqSelect() {
     const target = (typeof this.props.mkEqSelect === 'function' ? this.props.mkEqSelect(this.data) : this.props.mkEqSelect);
-    if (target !== undefined && this.select !== target) {
+    if (target !== undefined && this.emptyValue === false && this.select !== target) {
       throw new Error(this.props.ms?.mkEqSelect || ms.mkEqSelect(target, this.realLabel));
     }
   }
   async mkNeSelect() {
     const target = (typeof this.props.mkNeSelect === 'function' ? this.props.mkNeSelect(this.data) : this.props.mkNeSelect);
-    if (target !== undefined && this.select === target) {
+    if (target !== undefined && this.emptyValue === false && this.select === target) {
       throw new Error(this.props.ms?.mkNeSelect || ms.mkNeSelect(target, this.realLabel));
     }
   }
   async mkLtSelect() {
     const target = (typeof this.props.mkLtSelect === 'function' ? this.props.mkLtSelect(this.data) : this.props.mkLtSelect);
-    if (target !== undefined && this.select >= target) {
+    if (target !== undefined && this.emptyValue === false && this.select >= target) {
       throw new Error(this.props.ms?.mkLtSelect || ms.mkLtSelect(target, this.realLabel));
     }
   }
   async mkLeSelect() {
     const target = (typeof this.props.mkLeSelect === 'function' ? this.props.mkLeSelect(this.data) : this.props.mkLeSelect);
-    if (target !== undefined && this.select > target) {
+    if (target !== undefined && this.emptyValue === false && this.select > target) {
       throw new Error(this.props.ms?.mkLeSelect || ms.mkLeSelect(target, this.realLabel));
     }
   }
   async mkGtSelect() {
     const target = (typeof this.props.mkGtSelect === 'function' ? this.props.mkGtSelect(this.data) : this.props.mkGtSelect);
-    if (target !== undefined && this.select <= target) {
+    if (target !== undefined && this.emptyValue === false && this.select <= target) {
       throw new Error(this.props.ms?.mkGtSelect || ms.mkGtSelect(target, this.realLabel));
     }
   }
   async mkGeSelect() {
     const target = (typeof this.props.mkGeSelect === 'function' ? this.props.mkGeSelect(this.data) : this.props.mkGeSelect);
-    if (target !== undefined && this.select < target) {
+    if (target !== undefined && this.emptyValue === false && this.select < target) {
       throw new Error(this.props.ms?.mkGeSelect || ms.mkGeSelect(target, this.realLabel));
     }
   }
   async mkEqLengthProp() {
     const path = (typeof this.props.mkEqLengthProp === 'function' ? this.props.mkEqLengthProp(this.data) : this.props.mkEqLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value !== target) {
@@ -1768,7 +1768,7 @@ export class ValidItem<FormType> {
   }
   async mkNeLengthProp() {
     const path = (typeof this.props.mkNeLengthProp === 'function' ? this.props.mkNeLengthProp(this.data) : this.props.mkNeLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value === target) {
@@ -1778,7 +1778,7 @@ export class ValidItem<FormType> {
   }
   async mkLtLengthProp() {
     const path = (typeof this.props.mkLtLengthProp === 'function' ? this.props.mkLtLengthProp(this.data) : this.props.mkLtLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value >= target) {
@@ -1788,7 +1788,7 @@ export class ValidItem<FormType> {
   }
   async mkLeLengthProp() {
     const path = (typeof this.props.mkLeLengthProp === 'function' ? this.props.mkLeLengthProp(this.data) : this.props.mkLeLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value > target) {
@@ -1798,7 +1798,7 @@ export class ValidItem<FormType> {
   }
   async mkGtLengthProp() {
     const path = (typeof this.props.mkGtLengthProp === 'function' ? this.props.mkGtLengthProp(this.data) : this.props.mkGtLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value <= target) {
@@ -1808,7 +1808,7 @@ export class ValidItem<FormType> {
   }
   async mkGeLengthProp() {
     const path = (typeof this.props.mkGeLengthProp === 'function' ? this.props.mkGeLengthProp(this.data) : this.props.mkGeLengthProp);
-    if (path) {
+    if (path && this.emptyValue === false) {
       const value = LGet(this.data, path);
       const target = this.isEmptyValue(value) ? 0 : `${value}`.length;
       if (this.value < target) {
@@ -1818,7 +1818,7 @@ export class ValidItem<FormType> {
   }
   async mkIdCard() {
     const mkIdCard = typeof this.props.mkIdCard === 'function' ? this.props.mkIdCard(this.data) : this.props.mkIdCard
-    if (mkIdCard === true) {
+    if (mkIdCard === true && this.emptyValue === false) {
       if (!validIdCard(this.value)) {
         throw new Error(this.props.ms?.mkIdCard || '身份证号码错误');
       }
@@ -1826,7 +1826,7 @@ export class ValidItem<FormType> {
   }
   async mkBusinessLicense() {
     const mkBusinessLicense = typeof this.props.mkBusinessLicense === 'function' ? this.props.mkBusinessLicense(this.data) : this.props.mkBusinessLicense
-    if (mkBusinessLicense === true) {
+    if (mkBusinessLicense === true && this.emptyValue === false) {
       if (!validateBusinessLicense(this.value)) {
         throw new Error(this.props.ms?.mkBusinessLicense || '营业执照号码错误');
       }
