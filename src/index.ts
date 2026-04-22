@@ -2113,19 +2113,19 @@ export interface EnmuJson {
 let configData: EnmuJson | null = null;
 export const getEnums = (GlobalValues: EnumMap): {
 
-  EnumArray: (key: string, { hidden }?: { hidden?: string[] }) => Array<[string, string]>;
-  EnumMap: (key: string, { hidden }?: { hidden?: string[] }) => Record<string, string>;
-  getKV: (key: string, { disabled, hidden, empty }?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
+  EnumArray: (key: string, p?: { hidden?: string[] }) => Array<[string, string]>;
+  EnumMap: (key: string, p?: { hidden?: string[] }) => Record<string, string>;
+  getKV: (key: string, p?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
   getK: (type: string, value: string) => string | undefined;
 
-  EnumArrayUS: (key: string, { hidden }?: { hidden?: string[] }) => Array<[string, string]>;
-  EnumMapUS: (key: string, { hidden }?: { hidden?: string[] }) => Record<string, string>;
-  getKVUS: (key: string, { disabled, hidden, empty }?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
+  EnumArrayUS: (key: string, p?: { hidden?: string[] }) => Array<[string, string]>;
+  EnumMapUS: (key: string, p?: { hidden?: string[] }) => Record<string, string>;
+  getKVUS: (key: string, p?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
   getKUS: (type: string, value: string) => string | undefined;
 
-  EnumArrayLocale: (localType: LocalType, key: string, { hidden }?: { hidden?: string[] }) => Array<[string, string]>;
-  EnumMapLocale: (localType: LocalType, key: string, { hidden }?: { hidden?: string[] }) => Record<string, string>;
-  getKVLocale: (localType: LocalType, key: string, { disabled, hidden, empty }?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
+  EnumArrayLocale: (localType: LocalType, key: string, p?: { hidden?: string[] }) => Array<[string, string]>;
+  EnumMapLocale: (localType: LocalType, key: string, p?: { hidden?: string[] }) => Record<string, string>;
+  getKVLocale: (localType: LocalType, key: string, p?: { disabled?: string[]; hidden?: string[]; empty?: [string, string] }) => Array<{ value: string; label: string; disabled?: boolean; hidden?: boolean }>;
   getKLocale: (localType: LocalType, type: string, value: string) => string | undefined;
 } => {
   if (!configData) {
@@ -2136,7 +2136,7 @@ export const getEnums = (GlobalValues: EnumMap): {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Object.keys(GlobalValues).forEach((item) => {
       // const guess = /([\w\W]+)_([^_]+)$/.exec(item);
-      const guess = item.replace(`_${GlobalValues[item]!.value()}`, '');
+      const guess = item.replace(new RegExp(`_${GlobalValues[item]!.value()}`, 'i'), '');
       if (guess) {
         result.GlobalArray[guess] ??= [];
         result.GlobalArrayEnUS[guess] ??= [];
@@ -2148,15 +2148,26 @@ export const getEnums = (GlobalValues: EnumMap): {
     configData = result;
   }
   return {
-    EnumArray: (key: string, { hidden }: { hidden?: string[] } = {}) =>
-      configData!.GlobalArray[key]!
-        .filter(item => (hidden ? !hidden.includes(item[0]!) : true)),
-    EnumMap: (key: string, { hidden }: { hidden?: string[] } = {}) =>
-      Object.fromEntries(
+    EnumArray: (key: string, { hidden }: { hidden?: string[] } = {}) => {
+      if (!configData!.GlobalArray[key]) {
+        throw new Error(`EnumArray not found: ${key}`);
+      }
+      return configData!.GlobalArray[key]!
+        .filter(item => (hidden ? !hidden.includes(item[0]!) : true));
+    },
+    EnumMap: (key: string, { hidden }: { hidden?: string[] } = {}) => {
+      if (!configData!.GlobalArray[key]) {
+        throw new Error(`EnumArray not found: ${key}`);
+      }
+      return Object.fromEntries(
         configData!.GlobalArray[key]!
           .filter(item => (hidden ? !hidden.includes(item[0]!) : true))
-      ),
+      )
+    },
     getKV: (key: string, { disabled, hidden, empty }: { disabled?: string[]; hidden?: string[]; empty?: [string, string] } = {}) => {
+      if (!configData!.GlobalArray[key]) {
+        throw new Error(`EnumArray not found: ${key}`);
+      }
       const result = configData!.GlobalArray[key]!
         .map(item => ({
           value: item[0],
@@ -2176,20 +2187,34 @@ export const getEnums = (GlobalValues: EnumMap): {
       return result;
     },
     getK: (type: string, value: string) => {
+      if (!configData!.GlobalArray[type]) {
+        throw new Error(`EnumArray not found: ${type}`);
+      }
       const item = configData!.GlobalArray[type]?.find(item => item[1] === value);
       return item ? item[0] : undefined;
     },
 
 
-    EnumArrayUS: (key: string, { hidden }: { hidden?: string[] } = {}) =>
-      configData!.GlobalArrayEnUS[key]!
-        .filter(item => (hidden ? !hidden.includes(item[0]!) : true)),
-    EnumMapUS: (key: string, { hidden }: { hidden?: string[] } = {}) =>
-      Object.fromEntries(
+    EnumArrayUS: (key: string, { hidden }: { hidden?: string[] } = {}) => {
+      if (!configData!.GlobalArrayEnUS[key]) {
+        throw new Error(`EnumArrayUS not found: ${key}`);
+      }
+      return configData!.GlobalArrayEnUS[key]!
+        .filter(item => (hidden ? !hidden.includes(item[0]!) : true));
+    },
+    EnumMapUS: (key: string, { hidden }: { hidden?: string[] } = {}) => {
+      if (!configData!.GlobalArrayEnUS[key]) {
+        throw new Error(`EnumMapUS not found: ${key}`);
+      }
+      return Object.fromEntries(
         configData!.GlobalArrayEnUS[key]!
           .filter(item => (hidden ? !hidden.includes(item[0]!) : true))
-      ),
+      )
+    },
     getKVUS: (key: string, { disabled, hidden, empty }: { disabled?: string[]; hidden?: string[]; empty?: [string, string] } = {}) => {
+      if (!configData!.GlobalArrayEnUS[key]) {
+        throw new Error(`EnumArrayUS not found: ${key}`);
+      }
       const result = configData!.GlobalArrayEnUS[key]!
         .map(item => ({
           value: item[0],
@@ -2209,20 +2234,33 @@ export const getEnums = (GlobalValues: EnumMap): {
       return result;
     },
     getKUS: (type: string, value: string) => {
+      if (!configData!.GlobalArrayEnUS[type]) {
+        throw new Error(`EnumArrayUS not found: ${type}`);
+      }
       const item = configData!.GlobalArrayEnUS[type]?.find(item => item[1] === value);
       return item ? item[0] : undefined;
     },
 
-    EnumArrayLocale: (localType: LocalType, key: string, { hidden }: { hidden?: string[] } = {}) =>
-      configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key]!
-        .filter(item => (hidden ? !hidden.includes(item[0]!) : true)),
-    EnumMapLocale: (localType: LocalType, key: string, { hidden }: { hidden?: string[] } = {}) =>
-      Object.fromEntries(
-        configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key]!
-          .filter(item => (hidden ? !hidden.includes(item[0]!) : true))
-      ),
+    EnumArrayLocale: (localType: LocalType, key: string, { hidden }: { hidden?: string[] } = {}) => {
+      const db = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key];
+      if (!db) {
+        throw new Error(`EnumArrayLocale not found: ${key}`);
+      }
+      return db!.filter(item => (hidden ? !hidden.includes(item[0]!) : true));
+    },
+    EnumMapLocale: (localType: LocalType, key: string, { hidden }: { hidden?: string[] } = {}) => {
+      const db = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key];
+      if (!db) {
+        throw new Error(`EnumMapLocale not found: ${key}`);
+      }
+      return Object.fromEntries(db.filter(item => (hidden ? !hidden.includes(item[0]!) : true)));
+    },
     getKVLocale: (localType: LocalType, key: string, { disabled, hidden, empty }: { disabled?: string[]; hidden?: string[]; empty?: [string, string] } = {}) => {
-      const result = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key]!
+      const db = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][key];
+      if (!db) {
+        throw new Error(`EnumArrayLocale not found: ${key}`);
+      }
+      const result = db!
         .map(item => ({
           value: item[0],
           label: item[1],
@@ -2241,7 +2279,11 @@ export const getEnums = (GlobalValues: EnumMap): {
       return result;
     },
     getKLocale: (localType: LocalType, type: string, value: string) => {
-      const item = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][type]?.find(item => item[1] === value);
+      const db = configData![localType === 'zh-CN' ? 'GlobalArray' : 'GlobalArrayEnUS'][type];
+      if (!db) {
+        throw new Error(`EnumArrayLocale not found: ${type}`);
+      }
+      const item = db.find(item => item[1] === value);
       return item ? item[0] : undefined;
     },
   };
